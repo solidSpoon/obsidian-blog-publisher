@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+我想写个 obsidian博客插件，我的资源库中有博客和笔记，博客是需要发布的，同时会带有 blog标签，和 yyyy-MM 格式的 date 属性，当点击发布时，插件会自动把当前库中所有带有blog 的文章生成 html，按照 date 降序排列，并发布到指定 github仓库，博客的样式就按照 github 默认风格就好，要一个列表页，列表页顶部是简单的介绍，之后就是播客列表，点击进入博客详情.
