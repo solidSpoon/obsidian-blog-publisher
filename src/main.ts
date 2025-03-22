@@ -2,6 +2,9 @@ import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Set
 import { marked } from 'marked';
 import { pinyin } from 'pinyin-pro';
 import { GithubService, GithubConfig } from './services/github-service';
+import * as Handlebars from 'handlebars';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Remember to rename these classes and interfaces!
 
@@ -29,12 +32,17 @@ const DEFAULT_SETTINGS: BlogPluginSettings = {
 export default class BlogPlugin extends Plugin {
 	settings: BlogPluginSettings;
 	githubService: GithubService;
+	indexTemplate: Handlebars.TemplateDelegate;
+	postTemplate: Handlebars.TemplateDelegate;
 
 	async onload() {
 		await this.loadSettings();
 		
 		// 初始化 GitHub 服务
 		this.initGithubService();
+
+		// 加载模板
+		await this.loadTemplates();
 
 		// 添加发布按钮到左侧工具栏
 		this.addRibbonIcon('book', '发布博客', (evt: MouseEvent) => {
@@ -117,6 +125,23 @@ export default class BlogPlugin extends Plugin {
 		this.githubService = new GithubService(config);
 	}
 
+	private async loadTemplates() {
+		try {
+			const pluginDir = this.app.vault.configDir + '/plugins/obsidian-blog-publisher';
+			const indexTemplatePath = path.join(pluginDir, 'src/templates/index.hbs');
+			const postTemplatePath = path.join(pluginDir, 'src/templates/post.hbs');
+
+			const indexTemplateContent = await fs.promises.readFile(indexTemplatePath, 'utf8');
+			const postTemplateContent = await fs.promises.readFile(postTemplatePath, 'utf8');
+
+			this.indexTemplate = Handlebars.compile(indexTemplateContent);
+			this.postTemplate = Handlebars.compile(postTemplateContent);
+		} catch (error) {
+			console.error('加载模板失败:', error);
+			throw new Error(`加载模板失败: ${error.message}`);
+		}
+	}
+
 	async publishBlog() {
 		try {
 			// 获取所有带有 blog 标签的文件
@@ -185,7 +210,7 @@ export default class BlogPlugin extends Plugin {
 			const uploadResult = await this.githubService.uploadFiles(filesToUpload);
 
 			// 处理上传结果
-			uploadResult.results.forEach(result => {
+			uploadResult.results.forEach((result: { path: string; success: boolean; message: string; skipped?: boolean }) => {
 				if (result.success) {
 					if (!result.skipped) {
 						new Notice(`成功发布：${result.path}`);
@@ -239,98 +264,18 @@ export default class BlogPlugin extends Plugin {
 	}
 
 	generateIndexHtml(posts: BlogPost[]): string {
-		const postsList = posts.map(post => `
-			<div class="post-item">
-				<h2><a href="${post.slug}.html">${post.title}</a></h2>
-				<div class="post-date">${post.date}</div>
-			</div>
-		`).join('');
-
-		return `
-			<!DOCTYPE html>
-			<html>
-			<head>
-				<meta charset="UTF-8">
-				<title>我的博客</title>
-				<style>
-					body {
-						font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-						line-height: 1.6;
-						max-width: 800px;
-						margin: 0 auto;
-						padding: 20px;
-					}
-					.header {
-						text-align: center;
-						margin-bottom: 40px;
-					}
-					.post-item {
-						margin-bottom: 30px;
-						padding-bottom: 20px;
-						border-bottom: 1px solid #eee;
-					}
-					.post-date {
-						color: #666;
-						font-size: 0.9em;
-					}
-				</style>
-			</head>
-			<body>
-				<div class="header">
-					<h1>我的博客</h1>
-					<p>${this.settings.blogDescription}</p>
-				</div>
-				<div class="posts">
-					${postsList}
-				</div>
-			</body>
-			</html>
-		`;
+		return this.indexTemplate({
+			description: this.settings.blogDescription,
+			posts: posts
+		});
 	}
 
 	generatePostHtml(post: BlogPost): string {
-		return `
-			<!DOCTYPE html>
-			<html>
-			<head>
-				<meta charset="UTF-8">
-				<title>${post.title}</title>
-				<style>
-					body {
-						font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-						line-height: 1.6;
-						max-width: 800px;
-						margin: 0 auto;
-						padding: 20px;
-					}
-					.header {
-						text-align: center;
-						margin-bottom: 40px;
-					}
-					.post-date {
-						color: #666;
-						font-size: 0.9em;
-					}
-					.back-link {
-						display: inline-block;
-						margin-top: 20px;
-						color: #0366d6;
-						text-decoration: none;
-					}
-				</style>
-			</head>
-			<body>
-				<div class="header">
-					<h1>${post.title}</h1>
-					<div class="post-date">${post.date}</div>
-				</div>
-				<div class="content">
-					${this.convertMarkdownToHtml(post.content)}
-				</div>
-				<a href="index.html" class="back-link">← 返回首页</a>
-			</body>
-			</html>
-		`;
+		return this.postTemplate({
+			title: post.title,
+			date: post.date,
+			content: this.convertMarkdownToHtml(post.content)
+		});
 	}
 
 	convertMarkdownToHtml(markdown: string): string {
