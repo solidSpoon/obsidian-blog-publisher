@@ -43,39 +43,38 @@ export class GithubService {
                 throw new Error('无效的文件名');
             }
 
-            // 计算文件内容的 hash
-            const contentHash = Buffer.from(content).toString('base64');
+            // 计算文件内容的 base64
+            const contentBase64 = Buffer.from(content).toString('base64');
 
             try {
-                // 获取文件信息
-                const { data } = await this.octokit.repos.getContent({
+                // 尝试获取文件信息
+                const { data: existingFile } = await this.octokit.repos.getContent({
                     owner: this.config.owner,
                     repo: this.config.repo,
                     path,
                 });
 
-                // 检查文件是否存在且内容是否变化
-                if (!Array.isArray(data) && 'content' in data && data.type === 'file') {
-                    const existingContent = data.content.replace(/\n/g, '');
-                    if (existingContent === contentHash) {
+                // 如果文件存在
+                if (!Array.isArray(existingFile) && existingFile.type === 'file') {
+                    // 检查内容是否相同
+                    if (existingFile.content?.replace(/\n/g, '') === contentBase64) {
                         return {
                             success: true,
                             message: `文件 ${path} 内容未变化`,
                             skipped: true
                         };
                     }
-                }
 
-                // 更新文件
-                if (!Array.isArray(data) && 'sha' in data) {
+                    // 更新文件
                     await this.octokit.repos.createOrUpdateFileContents({
                         owner: this.config.owner,
                         repo: this.config.repo,
                         path,
                         message: `Update ${path}`,
-                        content: contentHash,
-                        sha: data.sha
+                        content: contentBase64,
+                        sha: existingFile.sha
                     });
+
                     return {
                         success: true,
                         message: `文件 ${path} 更新成功`
@@ -89,13 +88,15 @@ export class GithubService {
                         repo: this.config.repo,
                         path,
                         message: `Create ${path}`,
-                        content: contentHash
+                        content: contentBase64
                     });
                     return {
                         success: true,
                         message: `文件 ${path} 创建成功`
                     };
                 }
+
+                // 如果是其他错误，重新抛出
                 throw error;
             }
 
@@ -107,7 +108,7 @@ export class GithubService {
             console.error(`上传文件 ${path} 失败:`, error);
             return {
                 success: false,
-                message: `上传文件失败: ${error.message}`
+                message: error.message
             };
         }
     }

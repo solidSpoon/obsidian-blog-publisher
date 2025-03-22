@@ -3,8 +3,7 @@ import { marked } from 'marked';
 import { pinyin } from 'pinyin-pro';
 import { GithubService, GithubConfig } from './services/github-service';
 import * as Handlebars from 'handlebars';
-import * as fs from 'fs';
-import * as path from 'path';
+import { INDEX_TEMPLATE, POST_TEMPLATE } from './templates';
 
 // Remember to rename these classes and interfaces!
 
@@ -127,15 +126,8 @@ export default class BlogPlugin extends Plugin {
 
 	private async loadTemplates() {
 		try {
-			const pluginDir = this.app.vault.configDir + '/plugins/obsidian-blog-publisher';
-			const indexTemplatePath = path.join(pluginDir, 'src/templates/index.hbs');
-			const postTemplatePath = path.join(pluginDir, 'src/templates/post.hbs');
-
-			const indexTemplateContent = await fs.promises.readFile(indexTemplatePath, 'utf8');
-			const postTemplateContent = await fs.promises.readFile(postTemplatePath, 'utf8');
-
-			this.indexTemplate = Handlebars.compile(indexTemplateContent);
-			this.postTemplate = Handlebars.compile(postTemplateContent);
+			this.indexTemplate = Handlebars.compile(INDEX_TEMPLATE);
+			this.postTemplate = Handlebars.compile(POST_TEMPLATE);
 		} catch (error) {
 			console.error('加载模板失败:', error);
 			throw new Error(`加载模板失败: ${error.message}`);
