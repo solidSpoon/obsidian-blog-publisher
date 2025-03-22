@@ -298,10 +298,10 @@ export default class BlogPlugin extends Plugin {
 		}
 
 		try {
-			console.log(`正在上传文件：${filename} 到 ${this.settings.githubOwner}/${this.settings.githubRepo}`);
+			// 计算文件内容的 hash，用于比较文件是否发生变化
+			const contentHash = Buffer.from(content).toString('base64');
 			
-			// 尝试获取文件信息
-			let sha: string | undefined;
+			// 获取文件信息
 			try {
 				const { data } = await this.octokit.repos.getContent({
 					owner: this.settings.githubOwner,
@@ -309,25 +309,42 @@ export default class BlogPlugin extends Plugin {
 					path: filename,
 				});
 				
-				if (!Array.isArray(data)) {
-					sha = data.sha;
+				// 如果文件存在且内容没有变化，则跳过上传
+				if (!Array.isArray(data) && 'content' in data && data.type === 'file') {
+					const existingContent = data.content.replace(/\n/g, '');
+					if (existingContent === contentHash) {
+						console.log(`文件 ${filename} 内容未变化，跳过上传`);
+						return;
+					}
+				}
+				
+				// 如果文件存在但内容有变化，则更新
+				if (!Array.isArray(data) && 'sha' in data) {
+					await this.octokit.repos.createOrUpdateFileContents({
+						owner: this.settings.githubOwner,
+						repo: this.settings.githubRepo,
+						path: filename,
+						message: `Update ${filename}`,
+						content: contentHash,
+						sha: data.sha
+					});
+					console.log(`文件 ${filename} 更新成功`);
+					return;
 				}
 			} catch (error) {
-				// 文件不存在，这是正常的
-				console.log(`文件 ${filename} 不存在，将创建新文件`);
+				if (error.status !== 404) {
+					throw error;
+				}
+				// 文件不存在，创建新文件
+				await this.octokit.repos.createOrUpdateFileContents({
+					owner: this.settings.githubOwner,
+					repo: this.settings.githubRepo,
+					path: filename,
+					message: `Create ${filename}`,
+					content: contentHash
+				});
+				console.log(`文件 ${filename} 创建成功`);
 			}
-
-			// 创建或更新文件
-			await this.octokit.repos.createOrUpdateFileContents({
-				owner: this.settings.githubOwner,
-				repo: this.settings.githubRepo,
-				path: filename,
-				message: `Update ${filename}`,
-				content: Buffer.from(content).toString('base64'),
-				sha: sha // 如果文件存在，提供 sha；如果是新文件，sha 为 undefined
-			});
-			
-			console.log(`文件 ${filename} 上传成功`);
 		} catch (error) {
 			console.error(`上传文件 ${filename} 失败:`, error);
 			throw new Error(`上传文件失败: ${error.message}`);
