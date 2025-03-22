@@ -1,6 +1,7 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
 import { Octokit } from '@octokit/rest';
 import { marked } from 'marked';
+import { pinyin } from 'pinyin-pro';
 
 // Remember to rename these classes and interfaces!
 
@@ -122,7 +123,14 @@ export default class BlogPlugin extends Plugin {
 				if (frontmatter?.tags?.includes('blog') && frontmatter?.date) {
 					const title = file.basename;
 					const date = frontmatter.date;
-					const slug = this.generateSlug(title);
+					
+					// 获取或生成 slug
+					let slug = frontmatter.slug;
+					if (!slug) {
+						slug = this.generateSlug(title);
+						// 更新文件的 frontmatter，添加 slug
+						await this.updateFrontmatter(file, { ...frontmatter, slug });
+					}
 					
 					// 检查 slug 是否为空
 					if (!slug) {
@@ -172,10 +180,33 @@ export default class BlogPlugin extends Plugin {
 
 	generateSlug(title: string): string {
 		if (!title) return '';
-		return title
+		
+		// 使用正则表达式匹配英文单词和其他字符
+		const words = title.match(/[A-Za-z]+|[^A-Za-z]+/g) || [];
+		
+		// 处理每个部分
+		const processedWords = words.map(word => {
+			// 如果是英文单词，直接返回
+			if (/^[A-Za-z]+$/.test(word)) {
+				return word;
+			}
+			// 如果包含中文字符，转换为拼音
+			if (/[\u4e00-\u9fa5]/.test(word)) {
+				return pinyin(word, {
+					toneType: 'none',
+					type: 'array'
+				}).join('-');
+			}
+			// 其他字符（空格、标点等）转换为中划线
+			return '-';
+		});
+		
+		return processedWords
+			.join('-')
 			.toLowerCase()
-			.replace(/[^a-z0-9]+/g, '-')
-			.replace(/(^-|-$)/g, '')
+			.replace(/[^a-z0-9]+/g, '-') // 将非字母数字字符替换为中划线
+			.replace(/(^-|-$)/g, '') // 移除首尾的中划线
+			.replace(/--+/g, '-') // 将多个连续的中划线替换为单个
 			.replace(/^$/, 'untitled'); // 如果结果为空，使用 'untitled'
 	}
 
@@ -357,6 +388,46 @@ export default class BlogPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	// 添加更新 frontmatter 的方法
+	async updateFrontmatter(file: TFile, newFrontmatter: any) {
+		try {
+			const content = await this.app.vault.read(file);
+			const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
+			const match = content.match(frontmatterRegex);
+			
+			if (match) {
+				// 将新的 frontmatter 转换为 YAML 格式
+				const yamlContent = Object.entries(newFrontmatter)
+					.map(([key, value]) => {
+						if (Array.isArray(value)) {
+							return `${key}:\n  - ${value.join('\n  - ')}`;
+						}
+						return `${key}: ${value}`;
+					})
+					.join('\n');
+				
+				// 替换原有的 frontmatter
+				const newContent = content.replace(frontmatterRegex, `---\n${yamlContent}\n---`);
+				await this.app.vault.modify(file, newContent);
+			} else {
+				// 如果没有 frontmatter，添加一个
+				const yamlContent = Object.entries(newFrontmatter)
+					.map(([key, value]) => {
+						if (Array.isArray(value)) {
+							return `${key}:\n  - ${value.join('\n  - ')}`;
+						}
+						return `${key}: ${value}`;
+					})
+					.join('\n');
+				const newContent = `---\n${yamlContent}\n---\n\n${content}`;
+				await this.app.vault.modify(file, newContent);
+			}
+		} catch (error) {
+			console.error('更新 frontmatter 失败:', error);
+			throw new Error(`更新 frontmatter 失败: ${error.message}`);
+		}
 	}
 }
 
