@@ -3,6 +3,13 @@ import { FileSystemAdapter } from 'obsidian';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
+interface OutlineItem {
+    level: number;
+    title: string;
+    id: string;
+    children: OutlineItem[];
+}
+
 export class TemplateService {
     private indexTemplate: Handlebars.TemplateDelegate;
     private postTemplate: Handlebars.TemplateDelegate;
@@ -44,6 +51,61 @@ export class TemplateService {
         return this.indexTemplate(data);
     }
 
+    private extractOutline(html: string): OutlineItem[] {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const headings = doc.querySelectorAll('h1, h2, h3, h4, h5, h6');
+        const outline: OutlineItem[] = [];
+        const stack: OutlineItem[] = [];
+
+        headings.forEach((heading) => {
+            const level = parseInt(heading.tagName[1]);
+            const title = heading.textContent || '';
+            const id = heading.id || this.generateId(title);
+
+            const item: OutlineItem = {
+                level,
+                title,
+                id,
+                children: []
+            };
+
+            while (stack.length > 0 && stack[stack.length - 1].level >= level) {
+                stack.pop();
+            }
+
+            if (stack.length === 0) {
+                outline.push(item);
+            } else {
+                stack[stack.length - 1].children.push(item);
+            }
+
+            stack.push(item);
+        });
+
+        return outline;
+    }
+
+    private generateId(title: string): string {
+        if (!title) return 'untitled';
+        
+        // 移除 HTML 标签
+        title = title.replace(/<[^>]+>/g, '');
+        
+        // 生成基础 ID
+        let id = title
+            .toLowerCase()
+            .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+            
+        // 如果 ID 为空，使用时间戳
+        if (!id) {
+            id = `heading-${Date.now()}`;
+        }
+        
+        return id;
+    }
+
     public generatePostHtml(data: { 
         title: string; 
         date: string; 
@@ -52,6 +114,22 @@ export class TemplateService {
         nextPost: { title: string; slug: string } | null;
         githubUsername: string;
     }): string {
-        return this.postTemplate(data);
+        // 提取大纲
+        const outline = this.extractOutline(data.content);
+        
+        // 为每个标题添加 id
+        const contentWithIds = data.content.replace(
+            /<h([1-6])>(.*?)<\/h\1>/g,
+            (match, level, title) => {
+                const id = this.generateId(title);
+                return `<h${level} id="${id}">${title}</h${level}>`;
+            }
+        );
+
+        return this.postTemplate({
+            ...data,
+            content: contentWithIds,
+            outline
+        });
     }
 } 
