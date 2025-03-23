@@ -105,7 +105,6 @@
             text-overflow: ellipsis;
             border-radius: 3px;
             transition: background-color 0.2s ease, color 0.2s ease;
-            font-weight: 400; /* 默认字重 */
         }
 
         .outline-link:hover {
@@ -146,28 +145,18 @@
             color: #57606a;
         }
 
-        /* 响应式设计 */
+        /* 响应式设计 - 在小屏幕上隐藏大纲 */
         @media (max-width: 1100px) {
-            .post-container {
-                flex-direction: column;
-                align-items: center; /* 在垂直布局时居中对齐 */
+            .outline-wrapper {
+                display: none; /* 完全隐藏大纲 */
             }
-
+            
+            .post-container {
+                gap: 0; /* 移除间隙 */
+            }
+            
             .post-content-wrapper {
                 max-width: 100%;
-            }
-
-            .outline-wrapper {
-                width: 100%;
-                max-width: 800px; /* 与内容区域同宽 */
-                margin-top: 30px;
-                position: relative; /* 在小屏幕上取消sticky定位 */
-                top: 0;
-                padding-top: 0;
-            }
-
-            .outline {
-                max-height: 250px;
             }
         }
 
@@ -178,16 +167,6 @@
             
             .post-content-wrapper {
                 padding-top: 15px;
-            }
-
-            .outline {
-                max-height: 200px;
-                padding: 12px;
-            }
-
-            .outline-title {
-                font-size: 1em;
-                margin-bottom: 10px;
             }
         }
     </style>

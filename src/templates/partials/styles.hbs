@@ -95,7 +95,7 @@
     }
 
     /* 首页特定样式 */
-    .main-content > .header {
+    .main-content>.header {
         text-align: left;
         margin-bottom: 48px;
         padding: 48px 20px 32px;
@@ -105,8 +105,8 @@
         margin-right: auto;
     }
 
-    .main-content > .search-container,
-    .main-content > .posts {
+    .main-content>.search-container,
+    .main-content>.posts {
         max-width: 900px;
         margin-left: auto;
         margin-right: auto;
@@ -372,11 +372,11 @@
     }
 
     .footer-motto {
-        color: #57606a;
-        font-size: 16px;
-        font-style: italic;
+        color: #8b949e;
+        font-size: 14px;
         margin: 0;
     }
+
 
     /* 搜索高亮样式 */
     .post-item.search-highlight {
@@ -409,20 +409,21 @@
 
     /* 响应式调整 */
     @media (max-width: 768px) {
-        .main-content > .header,
-        .main-content > .search-container,
-        .main-content > .posts {
+
+        .main-content>.header,
+        .main-content>.search-container,
+        .main-content>.posts {
             padding: 0 15px;
         }
-        
+
         .post-item {
             padding: 16px;
         }
-        
+
         .header h1 {
             font-size: 28px;
         }
-        
+
         .header .motto {
             font-size: 16px;
         }
