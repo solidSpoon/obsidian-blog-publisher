@@ -4,6 +4,7 @@ export interface GithubConfig {
     token: string;
     owner: string;
     repo: string;
+    branch?: string;
 }
 
 export class GithubService {
@@ -11,7 +12,10 @@ export class GithubService {
     private config: GithubConfig;
 
     constructor(config: GithubConfig) {
-        this.config = config;
+        this.config = {
+            ...config,
+            branch: config.branch || 'main' // 默认使用 main 分支
+        };
         this.octokit = new Octokit({
             auth: config.token
         });
@@ -47,7 +51,7 @@ export class GithubService {
             const { data: ref } = await this.octokit.git.getRef({
                 owner: this.config.owner,
                 repo: this.config.repo,
-                ref: 'heads/main'
+                ref: `heads/${this.config.branch}`
             });
 
             const { data: commit } = await this.octokit.git.getCommit({
@@ -89,7 +93,7 @@ export class GithubService {
             await this.octokit.git.updateRef({
                 owner: this.config.owner,
                 repo: this.config.repo,
-                ref: 'heads/main',
+                ref: `heads/${this.config.branch}`,
                 sha: newCommit.sha
             });
 

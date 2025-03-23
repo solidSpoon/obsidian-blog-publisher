@@ -22,6 +22,7 @@ interface BlogPluginSettings {
 	githubOwner: string;
 	blogDescription: string;
 	shouldUploadToGithub: boolean;
+	githubBranch: string;
 }
 
 const DEFAULT_SETTINGS: BlogPluginSettings = {
@@ -29,7 +30,8 @@ const DEFAULT_SETTINGS: BlogPluginSettings = {
 	githubRepo: '',
 	githubOwner: '',
 	blogDescription: '我的个人博客',
-	shouldUploadToGithub: true
+	shouldUploadToGithub: true,
+	githubBranch: 'main'
 }
 
 export default class BlogPlugin extends Plugin {
@@ -133,7 +135,8 @@ export default class BlogPlugin extends Plugin {
 		const config: GithubConfig = {
 			token: this.settings.githubToken,
 			owner: this.settings.githubOwner,
-			repo: this.settings.githubRepo
+			repo: this.settings.githubRepo,
+			branch: this.settings.githubBranch
 		};
 		this.githubService = new GithubService(config);
 	}
@@ -475,6 +478,17 @@ class BlogSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.githubOwner)
 				.onChange(async (value) => {
 					this.plugin.settings.githubOwner = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('GitHub 分支')
+			.setDesc('指定要推送的 GitHub 分支')
+			.addText(text => text
+				.setPlaceholder('输入分支名称（例如：main）')
+				.setValue(this.plugin.settings.githubBranch)
+				.onChange(async (value) => {
+					this.plugin.settings.githubBranch = value;
 					await this.plugin.saveSettings();
 				}));
 
