@@ -37,6 +37,30 @@ export default class BlogPlugin extends Plugin {
 	githubService: GithubService;
 	templateService: TemplateService;
 
+	// 获取当前月份的 YYMM 格式
+	private getCurrentMonth(): string {
+		const now = new Date();
+		const year = now.getFullYear() % 100; // 获取年份后两位
+		const month = (now.getMonth() + 1).toString().padStart(2, '0'); // 获取月份，补零
+		return `${year}${month}`;
+	}
+
+	// 将 YYMM 格式转换为 YYYY-MM 格式
+	private convertMonthFormat(month: string): string {
+		if (!month || typeof month !== 'string') return '';
+		
+		// 确保输入是4位数字格式
+		if (!/^\d{4}$/.test(month)) return '';
+		
+		const year = parseInt(month.substring(0, 2));
+		const monthStr = month.substring(2);
+		
+		// 只处理21世纪的日期
+		const fullYear = 2000 + year;
+		
+		return `${fullYear}-${monthStr}`;
+	}
+
 	// 获取临时目录路径
 	private getTempDir(): string {
 		// 使用插件目录下的 temp 文件夹
@@ -128,9 +152,23 @@ export default class BlogPlugin extends Plugin {
 				const fileContent = await this.app.vault.read(file);
 				const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
 
-				if (frontmatter?.tags?.includes('blog') && frontmatter?.date) {
+				if (frontmatter?.tags?.includes('blog')) {
 					const title = file.basename;
-					const date = frontmatter.date;
+					// 如果没有 month 属性，使用当前月份
+					const monthValue = frontmatter.month?.toString() || this.getCurrentMonth();
+					const date = this.convertMonthFormat(monthValue);
+
+					// 如果日期转换失败，跳过这篇文章
+					if (!date) {
+						new Notice(`警告：文件 "${title}" 的月份格式无效，已跳过`);
+						continue;
+					}
+
+					// 如果原来没有 month 属性，添加到 frontmatter
+					if (!frontmatter.month) {
+						await this.updateFrontmatter(file, { ...frontmatter, month: monthValue });
+						new Notice(`已为文章 "${title}" 自动添加当前月份：${monthValue}`);
+					}
 
 					// 获取或生成 slug
 					let slug = frontmatter.slug;
@@ -178,6 +216,29 @@ export default class BlogPlugin extends Plugin {
 			if (blogPosts.length === 0) {
 				new Notice('没有找到带有 blog 标签的文章');
 				return;
+			}
+
+			// 检查是否有重复的 slug
+			const slugCount = new Map<string, string[]>();
+			for (const post of blogPosts) {
+				if (!slugCount.has(post.slug)) {
+					slugCount.set(post.slug, [post.title]);
+				} else {
+					slugCount.get(post.slug)?.push(post.title);
+				}
+			}
+
+			// 如果发现重复的 slug，报错并终止操作
+			const duplicateSlugs = Array.from(slugCount.entries())
+				.filter(([_, titles]) => titles.length > 1);
+			
+			if (duplicateSlugs.length > 0) {
+				const errorMessage = duplicateSlugs.map(([slug, titles]) => 
+					`Slug "${slug}" 在以下文章中重复:\n${titles.map(title => `  - ${title}`).join('\n')}`
+				).join('\n\n');
+				
+				new Notice('发现重复的 slug，发布操作已终止');
+				throw new Error(`发现重复的 slug:\n${errorMessage}`);
 			}
 
 			// 按日期降序排序
