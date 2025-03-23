@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,90 +8,116 @@
     {{> styles}}
     <style>
         /* 文章页面特定样式 */
+        .main-content {
+            padding-top: 0; /* 移除main-content的顶部内边距 */
+        }
+        
         .post-container {
             display: flex;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 0 20px 20px; /* 移除顶部内边距，保留左右和底部内边距 */
             gap: 40px;
             position: relative;
+            min-height: 80vh;
         }
-        
+
         .post-content-wrapper {
             flex: 1;
             max-width: 800px;
+            padding-top: 20px; /* 为内容添加顶部内边距 */
         }
-        
-        .outline {
+
+        /* 大纲容器 - 调整sticky定位的起始位置 */
+        .outline-wrapper {
             width: 260px;
+            flex-shrink: 0;
             position: sticky;
-            top: 80px;
-            max-height: calc(100vh - 100px);
+            top: 60px; /* 减小与顶部的距离，与header高度匹配 */
+            height: fit-content;
+            align-self: flex-start;
+            padding-top: 20px; /* 为大纲添加顶部内边距，与内容对齐 */
+        }
+
+        /* 大纲本身不再需要sticky定位 */
+        .outline {
+            width: 100%;
+            max-height: calc(100vh - 100px); /* 调整最大高度 */
             overflow-y: auto;
-            padding: 20px;
+            padding: 15px;
             background: #f8f9fa;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-left: 20px;
-            flex-shrink: 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             scrollbar-width: thin;
             scrollbar-color: #888 #f1f1f1;
+            box-sizing: border-box;
+            z-index: 10;
         }
-        
+
         .outline::-webkit-scrollbar {
             width: 6px;
         }
-        
+
         .outline::-webkit-scrollbar-track {
             background: #f1f1f1;
             border-radius: 3px;
         }
-        
+
         .outline::-webkit-scrollbar-thumb {
             background: #888;
             border-radius: 3px;
         }
-        
+
         .outline-title {
-            font-size: 1.2em;
+            font-size: 1.1em;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             color: #333;
-            padding-bottom: 10px;
+            padding-bottom: 8px;
             border-bottom: 1px solid #e1e4e8;
         }
-        
+
         .outline-list {
             list-style: none;
             padding: 0;
             margin: 0;
         }
-        
+
         .outline-item {
-            margin: 8px 0;
+            margin: 6px 0;
+            word-break: break-word;
         }
-        
+
         .outline-link {
             color: #0366d6;
             text-decoration: none;
             font-size: 0.9em;
             display: block;
-            padding: 4px 0;
+            padding: 3px 0;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        
+
         .outline-link:hover {
             text-decoration: underline;
         }
-        
+
+        /* 当前活动的大纲项 */
+        .outline-link.active {
+            color: #0969da;
+            font-weight: 600;
+            background-color: rgba(9, 105, 218, 0.1);
+            border-radius: 3px;
+            padding: 3px 6px;
+        }
+
         .outline-subitems {
             list-style: none;
-            padding-left: 20px;
-            margin: 4px 0;
+            padding-left: 15px;
+            margin: 3px 0;
         }
-        
+
         .post-navigation {
             display: flex;
             justify-content: space-between;
@@ -98,50 +125,65 @@
             padding-top: 20px;
             border-top: 1px solid #d0d7de;
         }
-        
-        .prev-post, .next-post {
+
+        .prev-post,
+        .next-post {
             max-width: 45%;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        
+
         .post-meta {
             margin-bottom: 20px;
             color: #57606a;
         }
-        
+
         /* 响应式设计 */
         @media (max-width: 1100px) {
             .post-container {
                 flex-direction: column;
             }
-            
+
             .post-content-wrapper {
                 max-width: 100%;
             }
-            
-            .outline {
-                position: relative;
-                width: auto;
-                top: 0;
-                margin-left: 0;
+
+            .outline-wrapper {
+                width: 100%;
                 margin-top: 30px;
-                max-height: 300px;
+                position: relative; /* 在小屏幕上取消sticky定位 */
+                top: 0;
+                padding-top: 0;
             }
-        }
-        
-        @media (max-width: 768px) {
-            .post-container {
-                padding: 15px;
-            }
-            
+
             .outline {
                 max-height: 250px;
             }
         }
+
+        @media (max-width: 768px) {
+            .post-container {
+                padding: 0 15px 15px;
+            }
+            
+            .post-content-wrapper {
+                padding-top: 15px;
+            }
+
+            .outline {
+                max-height: 200px;
+                padding: 12px;
+            }
+
+            .outline-title {
+                font-size: 1em;
+                margin-bottom: 10px;
+            }
+        }
     </style>
 </head>
+
 <body>
     {{> header}}
     <div class="main-content">
@@ -165,30 +207,114 @@
                     {{/if}}
                 </div>
             </div>
-            
+
             {{#if outline.length}}
-            <div class="outline">
-                <div class="outline-title">目录</div>
-                <ul class="outline-list">
-                    {{#each outline}}
-                    <li class="outline-item">
-                        <a href="#{{id}}" class="outline-link">{{title}}</a>
-                        {{#if children.length}}
-                        <ul class="outline-subitems">
-                            {{#each children}}
-                            <li class="outline-item">
-                                <a href="#{{id}}" class="outline-link">{{title}}</a>
-                            </li>
-                            {{/each}}
-                        </ul>
-                        {{/if}}
-                    </li>
-                    {{/each}}
-                </ul>
+            <div class="outline-wrapper">
+                <div class="outline">
+                    <div class="outline-title">目录</div>
+                    <ul class="outline-list">
+                        {{#each outline}}
+                        <li class="outline-item">
+                            <a href="#{{id}}" class="outline-link">{{title}}</a>
+                            {{#if children.length}}
+                            <ul class="outline-subitems">
+                                {{#each children}}
+                                <li class="outline-item">
+                                    <a href="#{{id}}" class="outline-link">{{title}}</a>
+                                </li>
+                                {{/each}}
+                            </ul>
+                            {{/if}}
+                        </li>
+                        {{/each}}
+                    </ul>
+                </div>
             </div>
             {{/if}}
         </div>
     </div>
     {{> footer}}
+    
+    <script>
+        // 增强大纲的滚动行为和固定效果
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查是否存在大纲元素
+            const outline = document.querySelector('.outline');
+            const outlineWrapper = document.querySelector('.outline-wrapper');
+            const header = document.querySelector('.site-header');
+            
+            if (!outline || !outlineWrapper) return;
+            
+            // 调整大纲的sticky位置，确保与header底部对齐
+            if (header) {
+                const headerHeight = header.offsetHeight;
+                outlineWrapper.style.top = headerHeight + 'px';
+            }
+            
+            // 当点击大纲链接时，平滑滚动到目标位置
+            const outlineLinks = document.querySelectorAll('.outline-link');
+            outlineLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    
+                    if (targetElement) {
+                        // 计算目标位置，考虑固定导航栏的高度
+                        const headerHeight = document.querySelector('.site-header').offsetHeight;
+                        const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - headerHeight - 20;
+                        
+                        // 平滑滚动
+                        window.scrollTo({
+                            top: targetPosition,
+                            behavior: 'smooth'
+                        });
+                        
+                        // 更新URL哈希，但不触发跳转
+                        history.pushState(null, null, '#' + targetId);
+                    }
+                });
+            });
+            
+            // 监听滚动事件，高亮当前可见的标题
+            let headings = Array.from(document.querySelectorAll('.post-content h1, .post-content h2, .post-content h3'));
+            let outlineItems = document.querySelectorAll('.outline-link');
+            
+            if (headings.length > 0 && outlineItems.length > 0) {
+                window.addEventListener('scroll', function() {
+                    // 获取当前滚动位置
+                    const scrollPosition = window.scrollY;
+                    const headerHeight = document.querySelector('.site-header').offsetHeight;
+                    
+                    // 找到当前可见的标题
+                    let currentHeading = null;
+                    
+                    for (let i = 0; i < headings.length; i++) {
+                        const heading = headings[i];
+                        const headingTop = heading.getBoundingClientRect().top + window.pageYOffset - headerHeight - 30;
+                        
+                        if (scrollPosition >= headingTop) {
+                            currentHeading = heading;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    // 高亮对应的目录项
+                    if (currentHeading) {
+                        const currentId = currentHeading.id;
+                        
+                        outlineItems.forEach(item => {
+                            item.classList.remove('active');
+                            if (item.getAttribute('href') === '#' + currentId) {
+                                item.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    </script>
 </body>
+
 </html>
