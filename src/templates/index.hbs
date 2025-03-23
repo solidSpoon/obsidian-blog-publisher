@@ -30,88 +30,80 @@
         </div>
     </main>
     {{> footer}}
-    <script>
-        // 初始化 Fuse.js
-        const posts = Array.from(document.querySelectorAll('.post-item')).map(item => ({
-            title: item.dataset.title,
-            content: item.dataset.content
-        }));
+<script>
+    // 初始化 Fuse.js
+    const posts = Array.from(document.querySelectorAll('.post-item')).map(item => ({
+        title: item.dataset.title,
+        content: item.dataset.content,
+        element: item
+    }));
 
-        const fuse = new Fuse(posts, {
-            keys: ['title', 'content'],
-            threshold: 0.3,
-            includeMatches: true,
-            minMatchCharLength: 2
-        });
+    // 保存原始顺序，用于重置排序
+    const originalOrder = posts.map(post => post.element);
 
-        // 搜索功能
-        const searchInput = document.getElementById('searchInput');
-        const postsContainer = document.getElementById('postsContainer');
-        let noResultsElement = null;
+    const fuse = new Fuse(posts, {
+        keys: [
+            { name: 'title', weight: 0.7 },
+            { name: 'content', weight: 0.3 }
+        ],
+        threshold: 0.5,
+        minMatchCharLength: 2,
+        includeScore: true  // 包含分数以便排序
+    });
 
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value;
-            const postItems = document.querySelectorAll('.post-item');
-            let hasVisiblePosts = false;
+    // 搜索功能
+    const searchInput = document.getElementById('searchInput');
+    const postsContainer = document.getElementById('postsContainer');
 
-            if (query.length < 2) {
-                // 如果搜索词太短，显示所有文章
-                postItems.forEach(item => {
-                    item.style.display = 'block';
-                    hasVisiblePosts = true;
-                });
-            } else {
-                const results = fuse.search(query);
-                
-                postItems.forEach(item => {
-                    const result = results.find(r => r.item.title === item.dataset.title);
-                    if (result) {
-                        item.style.display = 'block';
-                        hasVisiblePosts = true;
-                        // 高亮匹配文本
-                        const title = item.querySelector('h2 a');
-                        const content = item.querySelector('.excerpt');
-                        if (result.matches) {
-                            result.matches.forEach(match => {
-                                if (match.key === 'title') {
-                                    title.innerHTML = highlightText(title.textContent, match.indices);
-                                } else if (match.key === 'content') {
-                                    content.innerHTML = highlightText(content.textContent, match.indices);
-                                }
-                            });
-                        }
-                    } else {
-                        item.style.display = 'none';
-                    }
-                });
-            }
-
-            // 处理"没有找到相关文章"提示
-            if (!hasVisiblePosts) {
-                if (!noResultsElement) {
-                    noResultsElement = document.createElement('div');
-                    noResultsElement.className = 'no-results';
-                    noResultsElement.textContent = '没有找到相关文章';
-                    postsContainer.appendChild(noResultsElement);
-                }
-            } else if (noResultsElement) {
-                noResultsElement.remove();
-                noResultsElement = null;
-            }
-        });
-
-        // 高亮文本函数
-        function highlightText(text, indices) {
-            let result = '';
-            let lastIndex = 0;
-            indices.forEach(([start, end]) => {
-                result += text.slice(lastIndex, start);
-                result += `<span class="highlight">${text.slice(start, end + 1)}</span>`;
-                lastIndex = end + 1;
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        // 如果搜索框为空，恢复原始顺序
+        if (query.length < 2) {
+            // 恢复所有文章并移除高亮
+            posts.forEach(post => {
+                post.element.style.display = 'block';
+                post.element.classList.remove('search-highlight');
             });
-            result += text.slice(lastIndex);
-            return result;
+            
+            // 恢复原始顺序
+            originalOrder.forEach(element => {
+                postsContainer.appendChild(element);
+            });
+            
+            return;
         }
-    </script>
+        
+        // 执行搜索
+        const results = fuse.search(query);
+        console.log(query);
+        console.log(JSON.stringify(results));
+        
+        // 创建排序映射：先匹配的，再未匹配的
+        const sortedElements = [];
+        
+        // 先添加匹配的结果（按相关性排序）
+        results.forEach(result => {
+            const element = result.item.element;
+            element.classList.add('search-highlight'); // 添加高亮类
+            sortedElements.push(element);
+        });
+        
+        // 然后添加未匹配的结果（保持原始顺序）
+        posts.forEach(post => {
+            const isMatched = results.some(result => result.item.element === post.element);
+            if (!isMatched) {
+                post.element.classList.remove('search-highlight');
+                sortedElements.push(post.element);
+            }
+        });
+        
+        // 重新排序元素
+        sortedElements.forEach(element => {
+            postsContainer.appendChild(element);
+        });
+    });
+</script>
+
 </body>
 </html> 

@@ -390,4 +390,26 @@
         font-size: 12px;
         margin: 0;
     }
+
+    /* 搜索高亮样式 */
+.post-item.search-highlight {
+    border-left: 3px solid #0969da;
+    border-left-color: #0969da !important;
+    background-color: #f6f8fa;
+}
+
+.post-item.search-highlight h2 a {
+    color: #0969da;
+}
+
+.search-highlight {
+    animation: highlight-pulse 1s ease-in-out;
+}
+
+@keyframes highlight-pulse {
+    0% { background-color: rgba(9, 105, 218, 0.1); }
+    50% { background-color: rgba(9, 105, 218, 0.2); }
+    100% { background-color: #f6f8fa; }
+}
+
 </style> 
