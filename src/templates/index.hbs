@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <title>solidSpoon's Blog</title>
-    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
     {{> styles}}
 </head>
+
 <body>
     {{> header}}
     <main class="main-content">
@@ -30,80 +31,111 @@
         </div>
     </main>
     {{> footer}}
-<script>
-    // 初始化 Fuse.js
-    const posts = Array.from(document.querySelectorAll('.post-item')).map(item => ({
-        title: item.dataset.title,
-        content: item.dataset.content,
-        element: item
-    }));
+    <script>
+        // 准备搜索数据
+        const posts = Array.from(document.querySelectorAll('.post-item')).map((item, idx) => ({
+            id: idx,
+            title: item.dataset.title,
+            content: item.dataset.content,
+            element: item,
+            originalIndex: idx  // 保存原始顺序
+        }));
 
-    // 保存原始顺序，用于重置排序
-    const originalOrder = posts.map(post => post.element);
+        // 保存原始顺序
+        const originalOrder = posts.map(post => post.element);
 
-    const fuse = new Fuse(posts, {
-        keys: [
-            { name: 'title', weight: 0.7 },
-            { name: 'content', weight: 0.3 }
-        ],
-        threshold: 0.5,
-        minMatchCharLength: 2,
-        includeScore: true  // 包含分数以便排序
-    });
+        // 搜索功能 - 增强的grep风格搜索
+        const searchInput = document.getElementById('searchInput');
+        const postsContainer = document.getElementById('postsContainer');
 
-    // 搜索功能
-    const searchInput = document.getElementById('searchInput');
-    const postsContainer = document.getElementById('postsContainer');
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim().toLowerCase();
 
-    searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.trim();
-        
-        // 如果搜索框为空，恢复原始顺序
-        if (query.length < 2) {
-            // 恢复所有文章并移除高亮
-            posts.forEach(post => {
-                post.element.style.display = 'block';
-                post.element.classList.remove('search-highlight');
-            });
-            
-            // 恢复原始顺序
-            originalOrder.forEach(element => {
-                postsContainer.appendChild(element);
-            });
-            
-            return;
-        }
-        
-        // 执行搜索
-        const results = fuse.search(query);
-        console.log(query);
-        console.log(JSON.stringify(results));
-        
-        // 创建排序映射：先匹配的，再未匹配的
-        const sortedElements = [];
-        
-        // 先添加匹配的结果（按相关性排序）
-        results.forEach(result => {
-            const element = result.item.element;
-            element.classList.add('search-highlight'); // 添加高亮类
-            sortedElements.push(element);
-        });
-        
-        // 然后添加未匹配的结果（保持原始顺序）
-        posts.forEach(post => {
-            const isMatched = results.some(result => result.item.element === post.element);
-            if (!isMatched) {
-                post.element.classList.remove('search-highlight');
-                sortedElements.push(post.element);
+            // 如果搜索框为空，恢复原始顺序和显示所有文章
+            if (query.length < 2) {
+                posts.forEach(post => {
+                    post.element.classList.remove('search-highlight');
+                    post.element.style.borderLeftWidth = '';
+                    post.element.style.borderLeftColor = '';
+                });
+
+                originalOrder.forEach(element => {
+                    postsContainer.appendChild(element);
+                });
+
+                return;
             }
-        });
-        
-        // 重新排序元素
-        sortedElements.forEach(element => {
-            postsContainer.appendChild(element);
-        });
-    });
-</script>
 
+            // 1. 整体搜索词
+            const fullQuery = query;
+            
+            // 2. 分词搜索 - 按空格分割
+            const queryTerms = query.split(/\s+/).filter(term => term.length >= 2);
+            
+            // 计算每篇文章的匹配分数
+            const scoredPosts = posts.map(post => {
+                const lowerTitle = post.title.toLowerCase();
+                const lowerContent = post.content.toLowerCase();
+                let score = 0;
+                
+                // 完整查询匹配得分（优先级最高）
+                if (lowerTitle.includes(fullQuery)) {
+                    score += 100; // 标题中完整匹配得高分
+                }
+                if (lowerContent.includes(fullQuery)) {
+                    score += 50;  // 内容中完整匹配得分
+                }
+                
+                // 分词匹配得分
+                queryTerms.forEach(term => {
+                    if (lowerTitle.includes(term)) {
+                        score += 20; // 标题中有单个词匹配
+                    }
+                    if (lowerContent.includes(term)) {
+                        score += 10; // 内容中有单个词匹配
+                    }
+                });
+                
+                return {
+                    post,
+                    score
+                };
+            });
+            
+            // 分离匹配和不匹配的文章
+            const matchedPosts = scoredPosts
+                .filter(item => item.score > 0)
+                .sort((a, b) => b.score - a.score); // 匹配的按分数排序
+                
+            const unmatchedPosts = scoredPosts
+                .filter(item => item.score === 0)
+                .sort((a, b) => a.post.originalIndex - b.post.originalIndex); // 不匹配的按原始顺序排序
+            
+            // 更新文章样式
+            posts.forEach(post => {
+                const matchResult = scoredPosts.find(item => item.post.id === post.id);
+                if (matchResult && matchResult.score > 0) {
+                    // 匹配文章，添加高亮
+                    post.element.classList.add('search-highlight');
+                    // 添加额外的高亮强度，与分数相关
+                    const intensity = Math.min(100, matchResult.score) / 100;
+                    post.element.style.borderLeftWidth = `${3 + intensity * 4}px`;
+                    post.element.style.borderLeftColor = '#0969da';
+                } else {
+                    // 不匹配文章，移除高亮
+                    post.element.classList.remove('search-highlight');
+                    post.element.style.borderLeftWidth = '';
+                    post.element.style.borderLeftColor = '';
+                }
+            });
+            
+            // 先添加匹配的文章，后添加不匹配的文章
+            const sortedResults = [...matchedPosts, ...unmatchedPosts];
+            sortedResults.forEach(item => {
+                postsContainer.appendChild(item.post.element);
+            });
+        });
+    </script>
 </body>
-</html> 
+
+</html>

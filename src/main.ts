@@ -70,7 +70,7 @@ export default class BlogPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
-		
+
 		// 初始化 GitHub 服务
 		this.initGithubService();
 
@@ -127,11 +127,11 @@ export default class BlogPlugin extends Plugin {
 			for (const file of files) {
 				const fileContent = await this.app.vault.read(file);
 				const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
-				
+
 				if (frontmatter?.tags?.includes('blog') && frontmatter?.date) {
 					const title = file.basename;
 					const date = frontmatter.date;
-					
+
 					// 获取或生成 slug
 					let slug = frontmatter.slug;
 					if (!slug) {
@@ -139,7 +139,7 @@ export default class BlogPlugin extends Plugin {
 						// 更新文件的 frontmatter，添加 slug
 						await this.updateFrontmatter(file, { ...frontmatter, slug });
 					}
-					
+
 					// 检查 slug 是否为空
 					if (!slug) {
 						new Notice(`警告：文件 "${title}" 生成的 slug 为空，已跳过`);
@@ -148,22 +148,22 @@ export default class BlogPlugin extends Plugin {
 
 					// 移除 frontmatter 获取纯内容
 					const content = fileContent.replace(/^---[\s\S]*?---/, '');
-					
+
 					// 移除 Markdown 图片语法
 					const cleanContent = content
 						.replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // 移除图片语法
 						.replace(/<img[^>]+>/g, ''); // 移除 HTML 图片标签
-					
+
 					// 生成摘要（取前 200 个字符）
 					const excerpt = cleanContent.replace(/[#*`~>]/g, '').trim().slice(0, 200) + '...';
-					
+
 					// 生成搜索内容（移除 Markdown 标记）
 					const searchContent = cleanContent
 						.replace(/[#*`~>]/g, '') // 移除 Markdown 标记
 						.replace(/\n/g, ' ') // 将换行替换为空格
 						.replace(/\s+/g, ' ') // 将多个空格替换为单个空格
 						.trim();
-					
+
 					blogPosts.push({
 						title,
 						date,
@@ -240,10 +240,10 @@ export default class BlogPlugin extends Plugin {
 
 	generateSlug(title: string): string {
 		if (!title) return '';
-		
+
 		// 使用正则表达式匹配英文单词和其他字符
 		const words = title.match(/[A-Za-z]+|[^A-Za-z]+/g) || [];
-		
+
 		// 处理每个部分
 		const processedWords = words.map(word => {
 			// 如果是英文单词，直接返回
@@ -260,7 +260,7 @@ export default class BlogPlugin extends Plugin {
 			// 其他字符（空格、标点等）转换为中划线
 			return '-';
 		});
-		
+
 		return processedWords
 			.join('-')
 			.toLowerCase()
@@ -280,7 +280,7 @@ export default class BlogPlugin extends Plugin {
 	generatePostHtml(post: BlogPost, allPosts: BlogPost[]): string {
 		// 找到当前文章的索引
 		const currentIndex = allPosts.findIndex(p => p.slug === post.slug);
-		
+
 		// 获取上一篇和下一篇文章
 		const prevPost = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null;
 		const nextPost = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
@@ -324,7 +324,7 @@ export default class BlogPlugin extends Plugin {
 			const content = await this.app.vault.read(file);
 			const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
 			const match = content.match(frontmatterRegex);
-			
+
 			if (match) {
 				// 将新的 frontmatter 转换为 YAML 格式
 				const yamlContent = Object.entries(newFrontmatter)
@@ -335,7 +335,7 @@ export default class BlogPlugin extends Plugin {
 						return `${key}: ${value}`;
 					})
 					.join('\n');
-				
+
 				// 替换原有的 frontmatter
 				const newContent = content.replace(frontmatterRegex, `---\n${yamlContent}\n---`);
 				await this.app.vault.modify(file, newContent);
@@ -368,7 +368,7 @@ class BlogSettingTab extends PluginSettingTab {
 	}
 
 	display(): void {
-		const {containerEl} = this;
+		const { containerEl } = this;
 
 		containerEl.empty();
 
