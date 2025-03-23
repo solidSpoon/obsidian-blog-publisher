@@ -199,7 +199,7 @@ export default class BlogPlugin extends Plugin {
 
 			// 生成每篇博客的详情页
 			for (const post of blogPosts) {
-				const postHtml = this.generatePostHtml(post);
+				const postHtml = this.generatePostHtml(post, blogPosts);
 				const postPath = `${tempDir}/${post.slug}.html`;
 				await adapter.write(postPath, postHtml);
 				filesToUpload.push({
@@ -277,11 +277,20 @@ export default class BlogPlugin extends Plugin {
 		});
 	}
 
-	generatePostHtml(post: BlogPost): string {
+	generatePostHtml(post: BlogPost, allPosts: BlogPost[]): string {
+		// 找到当前文章的索引
+		const currentIndex = allPosts.findIndex(p => p.slug === post.slug);
+		
+		// 获取上一篇和下一篇文章
+		const prevPost = currentIndex < allPosts.length - 1 ? allPosts[currentIndex + 1] : null;
+		const nextPost = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
+
 		return this.templateService.generatePostHtml({
 			title: post.title,
 			date: post.date,
-			content: this.convertMarkdownToHtml(post.content)
+			content: this.convertMarkdownToHtml(post.content),
+			prevPost: prevPost ? { title: prevPost.title, slug: prevPost.slug } : null,
+			nextPost: nextPost ? { title: nextPost.title, slug: nextPost.slug } : null
 		});
 	}
 

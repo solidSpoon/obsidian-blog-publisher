@@ -24,10 +24,12 @@ export class TemplateService {
         // 加载 partial 模板
         const headerTemplateContent = readFileSync(join(templatesPath, 'partials/header.hbs'), 'utf-8');
         const footerTemplateContent = readFileSync(join(templatesPath, 'partials/footer.hbs'), 'utf-8');
+        const stylesTemplateContent = readFileSync(join(templatesPath, 'partials/styles.hbs'), 'utf-8');
         
         // 注册 partial 模板
         Handlebars.registerPartial('header', headerTemplateContent);
         Handlebars.registerPartial('footer', footerTemplateContent);
+        Handlebars.registerPartial('styles', stylesTemplateContent);
 
         // 加载主模板文件
         const indexTemplateContent = readFileSync(join(templatesPath, 'index.hbs'), 'utf-8');
@@ -42,7 +44,13 @@ export class TemplateService {
         return this.indexTemplate(data);
     }
 
-    public generatePostHtml(data: { title: string; date: string; content: string }): string {
+    public generatePostHtml(data: { 
+        title: string; 
+        date: string; 
+        content: string;
+        prevPost: { title: string; slug: string } | null;
+        nextPost: { title: string; slug: string } | null;
+    }): string {
         return this.postTemplate(data);
     }
 } 
