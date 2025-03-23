@@ -29,6 +29,7 @@
 	},
 	"dependencies": {
 		"@octokit/rest": "^19.0.13",
+		"fuse.js": "^7.1.0",
 		"handlebars": "^4.7.8",
 		"marked": "^9.1.6",
 		"pinyin-pro": "^3.26.0"

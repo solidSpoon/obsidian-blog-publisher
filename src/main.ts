@@ -12,6 +12,8 @@ interface BlogPost {
 	date: string;
 	content: string;
 	slug: string;
+	excerpt?: string;
+	searchContent?: string;
 }
 
 interface BlogPluginSettings {
@@ -143,12 +145,32 @@ export default class BlogPlugin extends Plugin {
 						new Notice(`警告：文件 "${title}" 生成的 slug 为空，已跳过`);
 						continue;
 					}
+
+					// 移除 frontmatter 获取纯内容
+					const content = fileContent.replace(/^---[\s\S]*?---/, '');
+					
+					// 移除 Markdown 图片语法
+					const cleanContent = content
+						.replace(/!\[([^\]]*)\]\([^)]+\)/g, '') // 移除图片语法
+						.replace(/<img[^>]+>/g, ''); // 移除 HTML 图片标签
+					
+					// 生成摘要（取前 200 个字符）
+					const excerpt = cleanContent.replace(/[#*`~>]/g, '').trim().slice(0, 200) + '...';
+					
+					// 生成搜索内容（移除 Markdown 标记）
+					const searchContent = cleanContent
+						.replace(/[#*`~>]/g, '') // 移除 Markdown 标记
+						.replace(/\n/g, ' ') // 将换行替换为空格
+						.replace(/\s+/g, ' ') // 将多个空格替换为单个空格
+						.trim();
 					
 					blogPosts.push({
 						title,
 						date,
 						content: fileContent,
-						slug
+						slug,
+						excerpt,
+						searchContent
 					});
 				}
 			}
