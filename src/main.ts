@@ -2,8 +2,7 @@ import { App, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian'
 import { marked } from 'marked';
 import { pinyin } from 'pinyin-pro';
 import { GithubService, GithubConfig } from './services/github-service';
-import * as Handlebars from 'handlebars';
-import { INDEX_TEMPLATE, POST_TEMPLATE } from './templates';
+import { TemplateService } from './services/template-service';
 import { FileSystemAdapter } from 'obsidian';
 
 // Remember to rename these classes and interfaces!
@@ -34,8 +33,7 @@ const DEFAULT_SETTINGS: BlogPluginSettings = {
 export default class BlogPlugin extends Plugin {
 	settings: BlogPluginSettings;
 	githubService: GithubService;
-	indexTemplate: Handlebars.TemplateDelegate;
-	postTemplate: Handlebars.TemplateDelegate;
+	templateService: TemplateService;
 
 	// 获取临时目录路径
 	private getTempDir(): string {
@@ -74,8 +72,8 @@ export default class BlogPlugin extends Plugin {
 		// 初始化 GitHub 服务
 		this.initGithubService();
 
-		// 加载模板
-		await this.loadTemplates();
+		// 初始化模板服务
+		this.templateService = new TemplateService(this.app);
 
 		// 添加发布按钮到左侧工具栏
 		this.addRibbonIcon('upload', '发布博客', (evt: MouseEvent) => {
@@ -112,16 +110,6 @@ export default class BlogPlugin extends Plugin {
 			repo: this.settings.githubRepo
 		};
 		this.githubService = new GithubService(config);
-	}
-
-	private async loadTemplates() {
-		try {
-			this.indexTemplate = Handlebars.compile(INDEX_TEMPLATE);
-			this.postTemplate = Handlebars.compile(POST_TEMPLATE);
-		} catch (error) {
-			console.error('加载模板失败:', error);
-			throw new Error(`加载模板失败: ${error.message}`);
-		}
 	}
 
 	async publishBlog() {
@@ -261,14 +249,14 @@ export default class BlogPlugin extends Plugin {
 	}
 
 	generateIndexHtml(posts: BlogPost[]): string {
-		return this.indexTemplate({
+		return this.templateService.generateIndexHtml({
 			description: this.settings.blogDescription,
 			posts: posts
 		});
 	}
 
 	generatePostHtml(post: BlogPost): string {
-		return this.postTemplate({
+		return this.templateService.generatePostHtml({
 			title: post.title,
 			date: post.date,
 			content: this.convertMarkdownToHtml(post.content)
