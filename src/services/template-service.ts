@@ -40,7 +40,7 @@ export class TemplateService {
         this.postTemplate = Handlebars.compile(postTemplateContent);
     }
 
-    public generateIndexHtml(data: { posts: any[]; description: string }): string {
+    public generateIndexHtml(data: { posts: any[]; description: string; githubUsername: string }): string {
         return this.indexTemplate(data);
     }
 
@@ -50,6 +50,7 @@ export class TemplateService {
         content: string;
         prevPost: { title: string; slug: string } | null;
         nextPost: { title: string; slug: string } | null;
+        githubUsername: string;
     }): string {
         return this.postTemplate(data);
     }

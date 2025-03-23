@@ -273,7 +273,8 @@ export default class BlogPlugin extends Plugin {
 	generateIndexHtml(posts: BlogPost[]): string {
 		return this.templateService.generateIndexHtml({
 			description: this.settings.blogDescription,
-			posts: posts
+			posts: posts,
+			githubUsername: this.settings.githubOwner
 		});
 	}
 
@@ -290,7 +291,8 @@ export default class BlogPlugin extends Plugin {
 			date: post.date,
 			content: this.convertMarkdownToHtml(post.content),
 			prevPost: prevPost ? { title: prevPost.title, slug: prevPost.slug } : null,
-			nextPost: nextPost ? { title: nextPost.title, slug: nextPost.slug } : null
+			nextPost: nextPost ? { title: nextPost.title, slug: nextPost.slug } : null,
+			githubUsername: this.settings.githubOwner
 		});
 	}
 
