@@ -4,6 +4,7 @@ import { pinyin } from 'pinyin-pro';
 import { GithubService, GithubConfig } from './services/github-service';
 import * as Handlebars from 'handlebars';
 import { INDEX_TEMPLATE, POST_TEMPLATE } from './templates';
+import { FileSystemAdapter } from 'obsidian';
 
 // Remember to rename these classes and interfaces!
 
@@ -19,13 +20,15 @@ interface BlogPluginSettings {
 	githubRepo: string;
 	githubOwner: string;
 	blogDescription: string;
+	shouldUploadToGithub: boolean;
 }
 
 const DEFAULT_SETTINGS: BlogPluginSettings = {
 	githubToken: '',
 	githubRepo: '',
 	githubOwner: '',
-	blogDescription: '我的个人博客'
+	blogDescription: '我的个人博客',
+	shouldUploadToGithub: true
 }
 
 export default class BlogPlugin extends Plugin {
@@ -33,6 +36,37 @@ export default class BlogPlugin extends Plugin {
 	githubService: GithubService;
 	indexTemplate: Handlebars.TemplateDelegate;
 	postTemplate: Handlebars.TemplateDelegate;
+
+	// 获取临时目录路径
+	private getTempDir(): string {
+		// 使用插件目录下的 temp 文件夹
+		const adapter = this.app.vault.adapter;
+		if (adapter instanceof FileSystemAdapter) {
+			return `${this.app.vault.configDir}/plugins/${this.manifest.id}/temp`;
+		}
+		throw new Error('不支持的文件系统适配器');
+	}
+
+	// 确保临时目录存在
+	private async ensureTempDir(): Promise<void> {
+		const tempDir = this.getTempDir();
+		const adapter = this.app.vault.adapter;
+		if (!(await adapter.exists(tempDir))) {
+			await adapter.mkdir(tempDir);
+		}
+	}
+
+	// 清理临时目录
+	private async cleanTempDir(): Promise<void> {
+		const tempDir = this.getTempDir();
+		const adapter = this.app.vault.adapter;
+		if (await adapter.exists(tempDir)) {
+			const files = await adapter.list(tempDir);
+			for (const file of files.files) {
+				await adapter.remove(file);
+			}
+		}
+	}
 
 	async onload() {
 		await this.loadSettings();
@@ -92,6 +126,10 @@ export default class BlogPlugin extends Plugin {
 
 	async publishBlog() {
 		try {
+			// 确保临时目录存在并清理旧文件
+			await this.ensureTempDir();
+			await this.cleanTempDir();
+
 			// 获取所有带有 blog 标签的文件
 			const files = this.app.vault.getMarkdownFiles();
 			const blogPosts: BlogPost[] = [];
@@ -137,9 +175,13 @@ export default class BlogPlugin extends Plugin {
 
 			// 准备要上传的文件列表
 			const filesToUpload: { path: string; content: string }[] = [];
+			const tempDir = this.getTempDir();
+			const adapter = this.app.vault.adapter;
 
 			// 生成博客列表页
 			const indexHtml = this.generateIndexHtml(blogPosts);
+			const indexPath = `${tempDir}/index.html`;
+			await adapter.write(indexPath, indexHtml);
 			filesToUpload.push({
 				path: 'index.html',
 				content: indexHtml
@@ -148,30 +190,37 @@ export default class BlogPlugin extends Plugin {
 			// 生成每篇博客的详情页
 			for (const post of blogPosts) {
 				const postHtml = this.generatePostHtml(post);
+				const postPath = `${tempDir}/${post.slug}.html`;
+				await adapter.write(postPath, postHtml);
 				filesToUpload.push({
 					path: `${post.slug}.html`,
 					content: postHtml
 				});
 			}
 
-			// 批量上传文件
-			const uploadResult = await this.githubService.uploadFiles(filesToUpload);
+			// 根据设置决定是否上传到 GitHub
+			if (this.settings.shouldUploadToGithub) {
+				// 批量上传文件
+				const uploadResult = await this.githubService.uploadFiles(filesToUpload);
 
-			// 处理上传结果
-			uploadResult.results.forEach((result: { path: string; success: boolean; message: string; skipped?: boolean }) => {
-				if (result.success) {
-					if (!result.skipped) {
-						new Notice(`成功发布：${result.path}`);
+				// 处理上传结果
+				uploadResult.results.forEach((result: { path: string; success: boolean; message: string; skipped?: boolean }) => {
+					if (result.success) {
+						if (!result.skipped) {
+							new Notice(`成功发布：${result.path}`);
+						}
+					} else {
+						new Notice(`发布失败：${result.path} - ${result.message}`);
 					}
-				} else {
-					new Notice(`发布失败：${result.path} - ${result.message}`);
-				}
-			});
+				});
 
-			if (uploadResult.success) {
-				new Notice('博客发布成功！');
+				if (uploadResult.success) {
+					new Notice('博客发布成功！');
+				} else {
+					new Notice('部分文章发布失败，请查看详细信息');
+				}
 			} else {
-				new Notice('部分文章发布失败，请查看详细信息');
+				new Notice(`已生成 HTML 文件到：${tempDir}`);
 			}
 		} catch (error) {
 			new Notice('发布失败：' + error.message);
@@ -303,6 +352,16 @@ class BlogSettingTab extends PluginSettingTab {
 		const {containerEl} = this;
 
 		containerEl.empty();
+
+		new Setting(containerEl)
+			.setName('上传到 GitHub')
+			.setDesc('是否将生成的文件上传到 GitHub')
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.shouldUploadToGithub)
+				.onChange(async (value) => {
+					this.plugin.settings.shouldUploadToGithub = value;
+					await this.plugin.saveSettings();
+				}));
 
 		new Setting(containerEl)
 			.setName('GitHub Token')
