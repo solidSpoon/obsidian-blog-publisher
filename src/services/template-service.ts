@@ -26,7 +26,7 @@ export class TemplateService {
 
         const basePath = adapter.getBasePath();
         const pluginPath = join(basePath, '.obsidian/plugins/obsidian-blog-publisher');
-        const templatesPath = join(pluginPath, 'src/templates');
+        const templatesPath = join(pluginPath, 'templates');
 
         // 加载 partial 模板
         const headerTemplateContent = readFileSync(join(templatesPath, 'partials/header.hbs'), 'utf-8');
