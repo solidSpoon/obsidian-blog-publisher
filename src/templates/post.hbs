@@ -9,11 +9,61 @@
             line-height: 1.5;
             max-width: 1012px;
             margin: 0 auto;
-            padding: 40px 16px;
+            padding: 0;
             color: #24292f;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .site-header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #d0d7de;
+            padding: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-container {
+            max-width: 1012px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #24292f;
+            text-decoration: none;
+        }
+        .nav-brand:hover {
+            color: #0969da;
+        }
+        .nav-links {
+            display: flex;
+            gap: 24px;
+        }
+        .nav-link {
+            color: #57606a;
+            text-decoration: none;
+            font-size: 14px;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .nav-link:hover {
+            color: #24292f;
+            background-color: #f6f8fa;
+        }
+        .main-content {
+            padding: 40px 16px;
+            flex: 1;
         }
         .header {
-            text-align: center;
+            text-align: left;
             margin-bottom: 32px;
             padding-bottom: 24px;
             border-bottom: 1px solid #d0d7de;
@@ -23,25 +73,50 @@
             font-size: 32px;
             font-weight: 600;
             letter-spacing: -0.5px;
+            color: #24292f;
         }
         .post-date {
             color: #57606a;
             font-size: 14px;
             margin-top: 8px;
+            display: flex;
+            align-items: center;
+        }
+        .post-date::before {
+            content: "";
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2357606a' d='M8 0a8 8 0 1 0 8 8 8 8 0 0 0-8-8zm0 14a6 6 0 1 1 6-6 6 6 0 0 1-6 6zm.5-10.5a.5.5 0 0 0-1 0v3.5a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 0-1H8.5V3.5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center;
         }
         .content {
             font-size: 16px;
             line-height: 1.5;
+            color: #24292f;
         }
         .back-link {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
             margin-top: 32px;
             color: #0969da;
             text-decoration: none;
             font-size: 14px;
+            padding: 8px 16px;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            transition: all 0.2s ease;
         }
         .back-link:hover {
-            text-decoration: underline;
+            background-color: #f6f8fa;
+            border-color: #0969da;
+            text-decoration: none;
+        }
+        .back-link::before {
+            content: "←";
+            margin-right: 8px;
         }
         
         /* GitHub 风格的内容样式 */
@@ -50,6 +125,7 @@
             margin-bottom: 16px;
             font-weight: 600;
             line-height: 1.25;
+            color: #24292f;
         }
         .content h1 {
             font-size: 2em;
@@ -63,6 +139,7 @@
         }
         .content p {
             margin-bottom: 16px;
+            color: #24292f;
         }
         .content code {
             font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
@@ -71,6 +148,7 @@
             padding: 0.2em 0.4em;
             border-radius: 6px;
             background-color: rgba(175,184,193,0.2);
+            color: #24292f;
         }
         .content pre {
             margin-bottom: 16px;
@@ -91,17 +169,20 @@
             word-break: normal;
             overflow: visible;
             line-height: inherit;
+            color: #24292f;
         }
         .content img {
             max-width: 100%;
             height: auto;
             border-style: none;
             box-sizing: content-box;
+            border-radius: 6px;
         }
         .content ul, .content ol {
             margin-top: 0;
             margin-bottom: 16px;
             padding-left: 2em;
+            color: #24292f;
         }
         .content blockquote {
             margin: 0 0 16px;
@@ -109,16 +190,91 @@
             color: #57606a;
             border-left: 0.25em solid #d0d7de;
         }
+        .content table {
+            border-spacing: 0;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+            width: 100%;
+        }
+        .content table th,
+        .content table td {
+            padding: 6px 13px;
+            border: 1px solid #d0d7de;
+        }
+        .content table tr {
+            background-color: #ffffff;
+            border-top: 1px solid #d0d7de;
+        }
+        .content table tr:nth-child(2n) {
+            background-color: #f6f8fa;
+        }
+        /* Footer styles */
+        .site-footer {
+            background-color: #f6f8fa;
+            border-top: 1px solid #d0d7de;
+            padding: 40px 16px;
+            margin-top: 40px;
+        }
+        .footer-content {
+            max-width: 1012px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+        }
+        .footer-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #24292f;
+            margin: 0 0 16px 0;
+        }
+        .footer-section p {
+            color: #57606a;
+            margin: 0;
+            font-size: 14px;
+        }
+        .footer-section ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .footer-section ul li {
+            margin-bottom: 8px;
+        }
+        .footer-section ul li a {
+            color: #57606a;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        .footer-section ul li a:hover {
+            color: #0969da;
+        }
+        .footer-bottom {
+            max-width: 1012px;
+            margin: 40px auto 0;
+            padding-top: 24px;
+            border-top: 1px solid #d0d7de;
+            text-align: center;
+        }
+        .footer-bottom p {
+            color: #57606a;
+            font-size: 12px;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>{{title}}</h1>
-        <div class="post-date">{{date}}</div>
-    </div>
-    <div class="content">
-        {{{content}}}
-    </div>
-    <a href="index.html" class="back-link">← 返回首页</a>
+    {{> header}}
+    <main class="main-content">
+        <div class="header">
+            <h1>{{title}}</h1>
+            <div class="post-date">{{date}}</div>
+        </div>
+        <div class="content">
+            {{{content}}}
+        </div>
+        <a href="index.html" class="back-link">返回首页</a>
+    </main>
+    {{> footer}}
 </body>
 </html> 

@@ -21,7 +21,15 @@ export class TemplateService {
         const pluginPath = join(basePath, '.obsidian/plugins/obsidian-blog-publisher');
         const templatesPath = join(pluginPath, 'src/templates');
 
-        // 加载模板文件
+        // 加载 partial 模板
+        const headerTemplateContent = readFileSync(join(templatesPath, 'partials/header.hbs'), 'utf-8');
+        const footerTemplateContent = readFileSync(join(templatesPath, 'partials/footer.hbs'), 'utf-8');
+        
+        // 注册 partial 模板
+        Handlebars.registerPartial('header', headerTemplateContent);
+        Handlebars.registerPartial('footer', footerTemplateContent);
+
+        // 加载主模板文件
         const indexTemplateContent = readFileSync(join(templatesPath, 'index.hbs'), 'utf-8');
         const postTemplateContent = readFileSync(join(templatesPath, 'post.hbs'), 'utf-8');
 
